@@ -17,14 +17,15 @@ export async function addMentorDetails(token, _, mentorData) {
 }
 
 export async function fetchMentors(token) {
+    console.log(token)
     const supabase = await supabaseClient(token);
 
     const { data, error } = await supabase
         .from("alumni")
-        .select("recruiter_id, name, designation, company_name, expertise_area, alma_mater")
+        .select("recruiter_id, name, current_designation, company_name, expertise_area, alma_mater, slots_for_mentoring")
         .eq("available_to_mentor", true)
-        .gt("slots_for_mentoring", [])
         .order("name");
+    console.log(data);
 
     if (error) {
       console.error(error);
@@ -35,15 +36,13 @@ export async function fetchMentors(token) {
 }
 
 // Book a slot for the user in Supabase
-export async function bookSlot (slotTime, userId) {
+export async function bookSlot(token, _, selectedSlot) {
+    console.log(selectedSlot);
+    const supabase = await supabaseClient(token);
+
     const { data, error } = await supabase
-      .from("bookings")
-      .insert([
-        {
-          slot_time: slotTime,
-          user_id: userId,
-        },
-      ]);
+      .from("slots_for_mentoring")
+      .insert([bookingData]);
 
     if (error) throw new Error(error.message);
     return data;

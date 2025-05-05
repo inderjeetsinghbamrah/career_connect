@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import useFetch from "@/hooks/use-fetch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fetchMentors, bookSlot } from "@/api/apiAlumni"; // Adjust the import path as necessary
 
@@ -13,31 +13,37 @@ const MentorSlotSelector = ({ userId }) => {
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [mentors, setMentors] = useState([]);
     const [slots, setSlots] = useState([]);
+    const { isLoaded, user } = useUser();
 
-    const loadMentors = async () => {
-      try {
-        const data = await fetchMentors(); // Fetch available mentors only
-        setMentors(data);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to fetch mentors.",
-          variant: "destructive",
-        });
-      }
-    };
+    const {
+        fn: fnFetchAlumni,
+        loading: loadingFetchAlumni,
+        data: dataFetchAlumni,
+        error: errorFetchAlumni,
+    } = useFetch(fetchMentors);
+
+
 
     const loadSlots = async (mentorId) => {
-      const mentor = mentors.find((m) => m.id === mentorId);
-      setSlots(mentor?.slots || []); // Set slots from the mentor's array
-      setSelectedSlot(null); // Reset selected slot
+        const mentor = dataFetchAlumni?.find((m) => m.recruiter_id === mentorId);
+        setSlots(mentor?.slots_for_mentoring || []); // Set slots from the mentor's array
+        setSelectedSlot(null); // Reset selected slot
     };
 
-    const confirmBooking = async () => {
-      if (!selectedSlot) return;
+    const {
+        fn: fnConfirmBooking,
+        loading: loadingConfirmBooking,
+        data: dataConfirmBooking,
+        error: errorConfirmBooking,
+    } = useFetch(bookSlot);
 
+    const confirmBooking =  () => {
+      if (!selectedSlot) return;
+        console.log("Selected Slot:", selectedSlot);
+        console.log("Selected Mentor:", selectedMentor);
+        console.log("User ID:", user?.id);
       try {
-        await bookSlot(selectedSlot, userId);
+        fnConfirmBooking(selectedSlot, {candidateId: user?.id}, selectedMentor);
         toast({
           title: "Slot Booked",
           description: "You are now scheduled for your session.",
@@ -53,12 +59,12 @@ const MentorSlotSelector = ({ userId }) => {
     };
 
     useEffect(() => {
-      loadMentors(); // Load only available mentors
-    }, []);
+      if(isLoaded) fnFetchAlumni() // Load only available mentors
+    }, [isLoaded]);
 
     useEffect(() => {
       if (selectedMentor) {
-        loadSlots(selectedMentor); // Load slots when a mentor is selected
+          loadSlots(selectedMentor); // Load slots when a mentor is selected
       }
     }, [selectedMentor]);
 
@@ -70,17 +76,17 @@ const MentorSlotSelector = ({ userId }) => {
         <div>
           <h3 className="font-semibold mb-2">Step 1: Select Mentor</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {mentors?.map((mentor) => (
+            {dataFetchAlumni?.map((mentor,id) => (
               <Card
-                key={mentor.id}
+                key={id}
                 className={`cursor-pointer ${
-                  selectedMentor === mentor.id ? "border-blue-500 border-2" : ""
+                  selectedMentor === mentor.recruiter_id ? "border-blue-500 border-2" : ""
                 }`}
-                onClick={() => setSelectedMentor(mentor.id)}
+                onClick={() => setSelectedMentor(mentor.recruiter_id)}
               >
                 <CardContent className="p-4">
                   <p className="font-medium">{mentor.name}</p>
-                  <p className="text-sm text-gray-500">{mentor.designation}</p>
+                  <p className="text-sm text-gray-500">{mentor.current_designation}</p>
                 </CardContent>
               </Card>
             ))}
