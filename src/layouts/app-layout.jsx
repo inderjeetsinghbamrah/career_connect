@@ -10,7 +10,15 @@ const AppLayout = () => {
         <Outlet />
       </main>
       <div className="p-10 text-center bg-gray-800 mt-10">
-        Made with 💗 by RoadsideCoder
+        <h2 className="text-2xl font-bold text-gray-200">
+          Join the community of job seekers and recruiters
+        </h2>
+        <p className="text-gray-400 mt-4">
+          Explore thousands of job listings or find the perfect candidate
+              </p>
+              <p className="text-gray-400 mt-4">
+                  Whether you're looking for a new opportunity or seeking top talent, we've got you covered.
+                </p>
       </div>
     </div>
   );
