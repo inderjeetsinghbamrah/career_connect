@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@clerk/clerk-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fetchMentors, bookSlot } from "@/api/apiAlumni"; // Adjust the import path as necessary
+import { fetchMentors, bookSlot, fetchMyBookedSlots } from "@/api/apiAlumni"; // Adjust the import path as necessary
 
 const MentorSlotSelector = ({ userId }) => {
     const { toast } = useToast();
@@ -37,17 +37,21 @@ const MentorSlotSelector = ({ userId }) => {
         error: errorConfirmBooking,
     } = useFetch(bookSlot);
 
+    const {
+        fn: fnFetchMyBookings,
+        loading: loadingMyBookings,
+        data: myBookings,
+        error: errorMyBookings,
+    } = useFetch(fetchMyBookedSlots);
+
     const confirmBooking =  () => {
       if (!selectedSlot) return;
-        console.log("Selected Slot:", selectedSlot);
-        console.log("Selected Mentor:", selectedMentor);
-        console.log("User ID:", user?.id);
       try {
-        fnConfirmBooking(selectedSlot, {candidateId: user?.id}, selectedMentor);
+        fnConfirmBooking(selectedSlot, user?.id, selectedMentor);
         toast({
           title: "Slot Booked",
           description: "You are now scheduled for your session.",
-          variant: "default",
+          variant: "green",
         });
       } catch (error) {
         toast({
@@ -68,9 +72,15 @@ const MentorSlotSelector = ({ userId }) => {
       }
     }, [selectedMentor]);
 
+    useEffect(() => {
+        if (isLoaded && user?.id) {
+          fnFetchMyBookings(user?.id);
+        }
+      }, [isLoaded]);
     return (
       <div className="p-4 max-w-3xl mx-auto space-y-6">
-        <h2 className="text-xl font-bold text-center">Book a Mentoring Slot</h2>
+            <h2 className="text-xl font-bold text-center">Book a Mentoring Slot</h2>
+
 
         {/* Step 1: Mentor Selection */}
         <div>
@@ -122,7 +132,30 @@ const MentorSlotSelector = ({ userId }) => {
               </Button>
             </div>
           </div>
-        )}
+            )}
+            {/* My Bookings Section */}
+<div className="mt-10">
+  <h3 className="text-lg font-semibold mb-2">Your Booked Slots</h3>
+
+  {loadingMyBookings ? (
+    <p>Loading...</p>
+  ) : errorMyBookings ? (
+    <p className="text-red-500">Failed to load your bookings.</p>
+  ) : myBookings?.length > 0 ? (
+    <div className="grid gap-4">
+      {myBookings.map((booking, index) => (
+        <Card key={index}>
+          <CardContent className="p-4">
+            <p><strong>Mentor:</strong> {booking.alumni.name}</p>
+            <p><strong>Slot:</strong> {new Date(booking.slots_for_mentoring).toLocaleString()}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  ) : (
+    <p className="text-muted-foreground">You haven’t booked any slots yet.</p>
+  )}
+</div>
       </div>
     );
   };
